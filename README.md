@@ -149,6 +149,7 @@ print(f"Test Loss: {test_loss:.4f}, Test Accuracy: {accuracy:.4f}")
 <img width="365" height="44" alt="image" src="https://github.com/user-attachments/assets/2abdddef-aa2a-440b-9897-ba9e99ae22c3" />
 
 ## BONUS: Predict New Data
+```
 def predict_new(model, cont_values):
     model.eval()
     cont_tensor = torch.tensor([cont_values], dtype=torch.float32)
@@ -161,3 +162,8 @@ def predict_new(model, cont_values):
 new_data = [35, 200000, 13, 0, 0, 40]  # age, fnlwgt, education_num, capital_gain, capital_loss, hours_per_week
 print(predict_new(model, new_data))
 ```
+## result:
+The neural network model successfully predicts whether an individual earns more than $50,000 annually, achieving good accuracy on the test set. New inputs can be classified using the trained model.
+
+
+
