@@ -110,15 +110,15 @@ class TabularModel(nn.Module):
 
 n_cont = cont_train.shape[1]
 model = TabularModel(n_cont)
-```
-## training
+
+# training
 import torch.optim as optim
 
 # Loss function and optimizer
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-# Training loop
+```
+## Training loop
 ```
 epochs = 300
 for epoch in range(epochs):
