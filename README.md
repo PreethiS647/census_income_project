@@ -53,29 +53,111 @@ The model uses:
 ### Name: PREETHI S  
 ### Register Number: 212223230157
 
-The full implementation is in `notebooks/census_income_workshop.ipynb`.
+## Program
 
----
 
-## DATASET INFORMATION
-- Dataset: `income.csv` (30,000 entries)
-- Columns include age, fnlwgt, education_num, capital_gain, capital_loss, hours_per_week, and income_level.
-- The dataset must be placed in the project root folder or downloaded as instructed in the notebook.
+## Data preparation
+```
+import pandas as pd
+import torch
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+import random
 
----
+# Set random seed
+SEED = 42
+torch.manual_seed(SEED)
+random.seed(SEED)
 
-## OUTPUT
+# Load dataset
+df = pd.read_csv(r"C:\Users\admin\Downloads\income.csv.zip", compression='zip')
 
-- **Training Loss vs Epochs Plot**  
-  _Shows how the loss decreases over 300 epochs._
+# Continuous columns
+cont_columns = ['age', 'fnlwgt', 'education_num', 'capital_gain', 'capital_loss', 'hours_per_week']
+# Label column
+label_column = 'income_level'
 
-- **Accuracy on Test Set**  
-  _Displays the final classification accuracy._
+# Convert continuous columns to tensors
+cont_data = torch.tensor(df[cont_columns].values, dtype=torch.float32)
 
-- **Sample Prediction**  
-  _Shows model output for a user-provided sample input._
+# Encode labels
+labels = torch.tensor(LabelEncoder().fit_transform(df[label_column]), dtype=torch.long)
 
----
+# Split into training and testing sets
+cont_train, cont_test, y_train, y_test = train_test_split(
+    cont_data, labels, train_size=25000, test_size=5000, random_state=SEED
+)
+```
+## model design
+```
+import torch.nn as nn
+import torch.nn.functional as F
 
-## PROJECT STRUCTURE
-income_project" 
+class TabularModel(nn.Module):
+    def __init__(self, n_cont):
+        super().__init__()
+        self.bn = nn.BatchNorm1d(n_cont)  # BatchNorm for continuous features
+        self.fc1 = nn.Linear(n_cont, 50)  # Hidden layer with 50 neurons
+        self.dropout = nn.Dropout(0.4)    # Dropout p=0.4
+        self.fc2 = nn.Linear(50, 2)       # Output layer for binary classification
+
+    def forward(self, x):
+        x = self.bn(x)
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
+
+n_cont = cont_train.shape[1]
+model = TabularModel(n_cont)
+```
+## training
+import torch.optim as optim
+
+# Loss function and optimizer
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# Training loop
+```
+epochs = 300
+for epoch in range(epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(cont_train)
+    loss = criterion(outputs, y_train)
+    loss.backward()
+    optimizer.step()
+    
+    if (epoch+1) % 50 == 0:
+        print(f"Epoch {epoch+1}, Loss: {loss.item():.4f}")
+
+```
+  <img width="238" height="127" alt="image" src="https://github.com/user-attachments/assets/4d0206ad-0e5c-4f72-b417-ed23c3ea9f6f" />
+
+## evaluation
+```
+model.eval()
+with torch.no_grad():
+    outputs = model(cont_test)
+    preds = torch.argmax(outputs, dim=1)
+    accuracy = (preds == y_test).sum().item() / len(y_test)
+    test_loss = criterion(outputs, y_test).item()
+
+print(f"Test Loss: {test_loss:.4f}, Test Accuracy: {accuracy:.4f}")
+```
+<img width="365" height="44" alt="image" src="https://github.com/user-attachments/assets/2abdddef-aa2a-440b-9897-ba9e99ae22c3" />
+
+## BONUS: Predict New Data
+def predict_new(model, cont_values):
+    model.eval()
+    cont_tensor = torch.tensor([cont_values], dtype=torch.float32)
+    with torch.no_grad():
+        output = model(cont_tensor)
+        pred = torch.argmax(output, dim=1).item()
+    return ">50K" if pred == 1 else "<=50K"
+
+# Example usage
+new_data = [35, 200000, 13, 0, 0, 40]  # age, fnlwgt, education_num, capital_gain, capital_loss, hours_per_week
+print(predict_new(model, new_data))
+```
